@@ -24,13 +24,10 @@ COPY upload.sh /app/upload.sh
 # R, Julia, Go, a compiled binary are all fine.
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-pip \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
-
-COPY model.py .
+COPY model.py ace_data.py ./
 # COPY weights/ ./weights/
 
 # ================= EDIT ABOVE =================================

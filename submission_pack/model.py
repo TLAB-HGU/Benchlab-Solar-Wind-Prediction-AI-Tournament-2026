@@ -1,45 +1,42 @@
 #!/usr/bin/env python3
-# Example submission. Replace with anything — this exists to show the shape
-# of the contract, not to constrain your language.
-#
-# Usage:  python3 model.py 20261111T060000Z   ->  JSON on stdout
+"""Naive forecast from the latest eligible ACE/SWEPAM hourly speed."""
 
+import argparse
 import json
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from pathlib import Path
+
+from ace_data import MAX_AGE, iso, timestamp, valid_speed
 
 FORECAST_HOURS = 72
 
 
-def predict(t0):
-    # Return 72 hourly solar wind speeds (km/s) for t0+1h .. t0+72h.
-    # Flat persistence: a floor, not a model.
-    return [420.0] * FORECAST_HOURS
+def predict(t0, prepared):
+    observed = timestamp(prepared["observation_utc"])
+    issued = datetime.fromisoformat(prepared["issued_at_utc"].replace("Z", "+00:00"))
+    if timestamp(prepared["t0"]) != t0 or issued.tzinfo is None or issued > t0:
+        raise ValueError("Prepared input does not satisfy t0 publication cutoff")
+    if not timedelta(0) <= t0 - observed <= MAX_AGE:
+        raise ValueError("Observation is in the future or older than 72 hours")
+    speed = float(prepared["speed_kms"])
+    if not valid_speed(speed):
+        raise ValueError("Invalid input speed")
+    return [speed] * FORECAST_HOURS
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("usage: model.py <YYYYMMDDTHHMMSSZ>", file=sys.stderr)
-        return 2
-
-    t0 = datetime.strptime(sys.argv[1], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
-    speeds = predict(t0)
-
-    if len(speeds) != FORECAST_HOURS:
-        print(
-            "FATAL: produced %d values, need %d" % (len(speeds), FORECAST_HOURS),
-            file=sys.stderr,
-        )
-        return 3
-
-    json.dump(
-        {
-            "t0": t0.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "valid_from": (t0 + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "forecast_speed_kms": [float(v) for v in speeds],
-        },
-        sys.stdout,
-    )
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("t0", type=timestamp)
+    parser.add_argument("--input", required=True, type=Path)
+    args = parser.parse_args()
+    try:
+        speeds = predict(args.t0, json.loads(args.input.read_text()))
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        print(f"FATAL: {exc}", file=sys.stderr)
+        return 1
+    json.dump({"t0": iso(args.t0), "valid_from": iso(args.t0 + timedelta(hours=1)),
+               "forecast_speed_kms": speeds}, sys.stdout, allow_nan=False)
     return 0
 
 

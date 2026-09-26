@@ -1,0 +1,5 @@
+:Product: 202612_ace_swepam_1h.txt
+:Issued: 2027 Jan 01 0010 UT
+# Hourly Averaged Real-time Bulk Parameters of the Solar Wind Plasma
+2026 12 31 2200 61405 79200 0 1.0 410.0 100000
+2026 12 31 2300 61405 82800 0 1.0 415.0 100000

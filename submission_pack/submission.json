@@ -3,5 +3,5 @@
   "contact_email": "lead@example.edu",
   "cpu_units": 4096,
   "memory_mib": 16384,
-  "declared_domains": ["services.swpc.noaa.gov", "cdaweb.gsfc.nasa.gov"]
+  "declared_domains": ["sohoftp.nascom.nasa.gov"]
 }
